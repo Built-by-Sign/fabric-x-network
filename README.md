@@ -4,7 +4,7 @@ A Fabric-X network deployment configuration for CBDC applications.
 
 ## Prerequisites
 
-- **Go 1.21+** — builds local tools (config-builder, fxconfig) when you run Make targets
+- **Go 1.24.3+** — builds local tools (config-builder, fxconfig) when you run Make targets
 - **Docker & Docker Compose** — runs the network and the tooling image `docker.io/hyperledger/fabric-x-tools:0.0.4`
 - **Optional**: If Docker is unavailable, `cryptogen` can fall back to a local Go build
 
