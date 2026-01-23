@@ -1,0 +1,168 @@
+# Test configuration - software mode (HSM disabled)
+# project_dir can be left blank or use "." to automatically detect it, or use an absolute path
+# Automatic detection will search upwards from the directory where the configuration file is located
+# to the directory containing the tools/directory (that is, the root directory of fabric-x-network)
+project_dir: ""
+output_dir: ./build
+channel_id: arma
+
+# Docker settings
+docker:
+  name: fabric_x
+  network: fabric_x_net
+  network_driver: bridge
+  network_external: false
+  orderer_image: "hyperledger/fabric-x-orderer:0.0.19" # Use remote image (same as Ansible default)
+  committer_image: "hyperledger/fabric-x-committer:0.1.5" # Use available image
+
+hsm:
+  enabled: false
+  library_path: "" # Leave blank for automatic detection
+  config_path: /tmp/softhsm2.conf
+  token_dir: /tmp/softhsm/tokens
+  pin: "1234"
+  sopin: "5678"
+  token_label: FabricToken
+  multi_token: true
+
+# TLS configuration for orderer nodes
+tls:
+  enabled: false # Enable TLS for orderer nodes (temporarily disabled for debugging)
+  client_auth_required: false # Require client authentication (mTLS)
+
+orderer_orgs:
+  - name: OrdererOrg1
+    domain: ordererorg1.example.com
+    enable_organizational_units: false
+    hsm_token_label: "FabricToken-OrdererOrg1"
+    orderers:
+      - name: orderer-router-1
+        type: router
+        port: 7050
+        host: host.docker.internal
+      - name: orderer-batcher-1
+        type: batcher
+        port: 7051
+        shard_id: 1
+        host: host.docker.internal
+      - name: orderer-consenter-1
+        type: consenter
+        port: 7052
+        host: host.docker.internal
+      - name: orderer-assembler-1
+        type: assembler
+        port: 7053
+        host: host.docker.internal
+
+  - name: OrdererOrg2
+    domain: ordererorg2.example.com
+    enable_organizational_units: false
+    hsm_token_label: "FabricToken-OrdererOrg2"
+    orderers:
+      - name: orderer-router-2
+        type: router
+        port: 7150
+        host: host.docker.internal
+      - name: orderer-batcher-2
+        type: batcher
+        port: 7151
+        shard_id: 1
+        host: host.docker.internal
+      - name: orderer-consenter-2
+        type: consenter
+        port: 7152
+        host: host.docker.internal
+      - name: orderer-assembler-2
+        type: assembler
+        port: 7153
+        host: host.docker.internal
+
+  - name: OrdererOrg3
+    domain: ordererorg3.example.com
+    enable_organizational_units: false
+    hsm_token_label: "FabricToken-OrdererOrg3"
+    orderers:
+      - name: orderer-router-3
+        type: router
+        port: 7250
+        host: host.docker.internal
+      - name: orderer-batcher-3
+        type: batcher
+        port: 7251
+        shard_id: 1
+        host: host.docker.internal
+      - name: orderer-consenter-3
+        type: consenter
+        port: 7252
+        host: host.docker.internal
+      - name: orderer-assembler-3
+        type: assembler
+        port: 7253
+        host: host.docker.internal
+
+  - name: OrdererOrg4
+    domain: ordererorg4.example.com
+    enable_organizational_units: false
+    hsm_token_label: "FabricToken-OrdererOrg4"
+    orderers:
+      - name: orderer-router-4
+        type: router
+        port: 7350
+        host: host.docker.internal
+      - name: orderer-batcher-4
+        type: batcher
+        port: 7351
+        shard_id: 1
+        host: host.docker.internal
+      - name: orderer-consenter-4
+        type: consenter
+        port: 7352
+        host: host.docker.internal
+      - name: orderer-assembler-4
+        type: assembler
+        port: 7353
+        host: host.docker.internal
+
+peer_orgs:
+  - name: Org1MSP
+    domain: org1.example.com
+    enable_organizational_units: false
+    peers:
+      - name: peer0
+    users:
+      - name: Admin
+      - name: channel_admin
+        meta_namespace_admin: true
+      - name: endorser
+
+# Committer Configuration
+committer:
+  use_postgres: true
+  components:
+    - name: committer-db
+      type: db
+      port: 5435
+      host: committer-db
+      postgres_user: sc_user
+      postgres_password: sc_secret_pwd
+      postgres_db: sc_db
+    - name: committer-validator
+      type: validator
+      port: 5100
+      host: host.docker.internal
+    - name: committer-verifier
+      type: verifier
+      port: 5200
+      host: host.docker.internal
+    - name: committer-coordinator
+      type: coordinator
+      port: 5300
+      host: host.docker.internal
+    - name: committer-sidecar
+      type: sidecar
+      port: 5400
+      host: host.docker.internal
+    - name: committer-query-service
+      type: query-service
+      port: 5500
+      host: host.docker.internal
