@@ -15,8 +15,7 @@ DOCKER_DIR := $(CURDIR)/docker
 # ============================================================================
 # Docker Tool Configuration
 # ============================================================================
-# cbdc-tool 镜像包含: fxconfig, cryptogen, fabric-ca-client, fabric-ca-server,
-# tokengen, libkms_pkcs11.so
+# cbdc-tool 镜像包含: fxconfig, cryptogen, fabric-ca-client, fabric-ca-server, tokengen
 # 使用 .env 文件中定义的 DOCKER_TOOLS_IMAGE 变量
 
 # Docker 运行基础命令
