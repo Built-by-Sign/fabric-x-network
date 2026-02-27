@@ -213,22 +213,6 @@ orderers:
     port: 8050  # Changed from 7050
 ```
 
-## Project Structure
-
-```
-fabric-x-network/
-├── configs/              # Network configuration files
-│   └── test-full.yaml   # Default network topology
-├── docs/                # Documentation
-│   ├── plans/          # Implementation plans
-│   └── *.md            # Guides and references
-├── out/                 # Generated artifacts (gitignored)
-│   ├── build/          # Certificates and configs
-│   └── docker-compose.yaml
-├── Makefile            # Build automation
-└── README.md           # This file
-```
-
 ## Contributing
 
 We welcome contributions! Please follow these guidelines:
