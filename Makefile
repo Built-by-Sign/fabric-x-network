@@ -15,7 +15,8 @@ OUTPUT_DIR := ./out
 # Docker Tool Configuration
 # ============================================================================
 # cbdc-tool 镜像包含: fxconfig, cryptogen, fabric-ca-client, fabric-ca-server, tokengen
-# 使用 .env 文件中定义的 DOCKER_TOOLS_IMAGE 变量
+# 可通过环境变量 DOCKER_TOOLS_IMAGE 覆盖默认镜像
+DOCKER_TOOLS_IMAGE ?= ghcr.io/built-by-sign/fabric-x-tool:v0.0.4
 
 # Docker 运行基础命令
 # --rm: 容器退出后自动删除
