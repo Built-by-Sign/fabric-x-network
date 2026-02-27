@@ -113,11 +113,18 @@ quickstart: setup start create-ns
 	@echo "Network is ready!"
 	@echo "=========================================="
 
-# Restart: teardown existing network and start fresh
+# Restart: stop and start the network (keep existing config)
 .PHONY: restart
-restart: teardown setup start create-ns
+restart: stop start
 	@echo "=========================================="
-	@echo "Network restarted successfully!"
+	@echo "Network restarted!"
+	@echo "=========================================="
+
+# Rebuild: teardown, regenerate config and start fresh
+.PHONY: rebuild
+rebuild: teardown setup start create-ns
+	@echo "=========================================="
+	@echo "Network rebuilt successfully!"
 	@echo "=========================================="
 
 
@@ -129,7 +136,8 @@ help:
 	@echo ""
 	@echo "Quick Start:"
 	@echo "  quickstart    - One-click: setup, start network and create namespace (first time)"
-	@echo "  restart       - Teardown existing network and start fresh with new config"
+	@echo "  restart       - Stop and start the network (keep existing config)"
+	@echo "  rebuild       - Teardown, regenerate config and start fresh"
 	@echo ""
 	@echo "Main Commands:"
 	@echo "  setup         - Generate network configuration and docker-compose.yaml"
