@@ -108,8 +108,8 @@ output_dir: ./out
 
 # Docker images
 docker:
-  orderer_image: hyperledger/fabric-x-orderer:0.0.19
-  committer_image: hyperledger/fabric-x-committer:0.1.5
+  orderer_image: hyperledger/fabric-x-orderer:0.0.23
+  committer_image: hyperledger/fabric-x-committer:0.1.8
 
 # Orderer organizations
 orderer_orgs:
