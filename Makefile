@@ -77,7 +77,7 @@ start-fabric:
 # 注意：路径已转换为容器内路径（/workspace 对应宿主机的 PROJECT_DIR）
 create-ns:
 	@echo "Creating namespace using Docker..."
-	$(DOCKER_RUN_HSM) $(DOCKER_TOOLS_IMAGE) fxconfig namespace create cbdc \
+	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace create cbdc \
 		--channel=arma \
 		--orderer=localhost:7050 \
 		--mspID=Org1MSP \
@@ -89,27 +89,6 @@ create-ns:
 		echo "waiting for namespace to be created..."; \
 	done
 	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500
-
-# Create a namespace in fabric-x for the tokens.
-# 使用 Docker 容器运行 fxconfig 工具
-# 注意：路径已转换为容器内路径（/workspace 对应宿主机的 PROJECT_DIR）
-create-ns-dev:
-	@echo "Creating namespace using Docker..."
-	$(DOCKER_RUN_HSM) $(DOCKER_TOOLS_IMAGE) fxconfig namespace create cbdc \
-		--channel=arma \
-		--orderer=cbdc-dev.sign.global:7050 \
-		--mspID=Org1MSP \
-		--mspConfigPath=./out/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/channel_admin@org1.example.com/msp \
-		--pk=./out/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/endorser@org1.example.com/msp/signcerts/endorser@org1.example.com-cert.pem \
-		--pkcs11-library=/app/libkms_pkcs11.so \
-		--pkcs11-label="$(KMS_TOKEN_LABEL)" \
-		--pkcs11-pin=$(KMS_USER_PIN) \
-		--connTimeout=60s
-	@until $(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=cbdc-dev.sign.global:5500 | grep -q cbdc; do \
-		sleep 2; \
-		echo "waiting for namespace to be created..."; \
-	done
-	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=cbdc-dev.sign.global:5500
 
 # List namespaces
 # 使用 Docker 容器运行 fxconfig 工具
