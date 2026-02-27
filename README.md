@@ -171,46 +171,6 @@ docker run --rm --network host \
   --mspID=Org1MSP
 ```
 
-## Troubleshooting
-
-### Committer State Mismatch
-
-**Symptom**: Sidecar logs show state mismatch errors
-
-**Solution**:
-```bash
-# Stop committer services
-docker compose -f ./out/docker-compose.yaml stop committer-*
-
-# Clear sidecar ledger
-rm -rf ./out/local-deployment/committer-sidecar/config/ledger/*
-
-# Truncate database
-docker exec committer-db psql -U sc_user -d sc_db \
-  -c "TRUNCATE TABLE tx_status, ns_cbdc, ns__config, ns__meta, metadata CASCADE;"
-
-# Restart services
-docker compose -f ./out/docker-compose.yaml start committer-*
-```
-
-### Network Reset
-
-For a complete clean slate (teardown + setup + start + create namespace):
-
-```bash
-make quickstart
-```
-
-### Port Conflicts
-
-If ports are already in use, modify the port mappings in `configs/test-full.yaml`:
-
-```yaml
-orderers:
-  - name: orderer-router-1
-    port: 8050  # Changed from 7050
-```
-
 ## Contributing
 
 We welcome contributions! Please follow these guidelines:
