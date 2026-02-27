@@ -3,7 +3,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-
+# 读取 .env 文件
+ifneq (,$(wildcard .env))
+    include .env
+    export
+endif
 # exported vars
 CONTAINER_CLI ?= docker
 PROJECT_DIR := $(CURDIR)
@@ -11,67 +15,83 @@ export PROJECT_DIR
 
 # Makefile vars
 OUTPUT_DIR := ./out
-CONFIG_BUILDER_DIR := $(PROJECT_DIR)/tools/config-builder
-CONFIG_BUILDER_BIN := $(CONFIG_BUILDER_DIR)/build/cli/config-builder
-CONFIG_BUILDER_CONFIG ?= $(PROJECT_DIR)/configs/test-simple.yaml
-CONFIG ?= $(CONFIG_BUILDER_CONFIG)
-FXCONFIG_DIR := $(PROJECT_DIR)/tools/fxconfig
-FXCONFIG_BIN := $(FXCONFIG_DIR)/build/cli/fxconfig
-CRYPTOGEN_BIN := $(shell go env GOPATH)/bin/cryptogen
-TOOLS_IMAGE ?= docker.io/hyperledger/fabric-x-tools:0.0.4
-TOOLS_DEPS := build-fxconfig build-config-builder download-cryptogen
+DOCKER_DIR := $(CURDIR)/docker
 
-# Build config-builder binary from local source
-.PHONY: build-config-builder
-build-config-builder:
-	@echo "Building config-builder from local source..."
-	@cd $(CONFIG_BUILDER_DIR) && $(MAKE) build
-# Ensure config-builder is built from local source before using it
-$(CONFIG_BUILDER_BIN): build-config-builder
-# Build fxconfig binary from local source
-.PHONY: build-fxconfig
-build-fxconfig:
-	@echo "Building fxconfig from local source..."
-	@cd $(FXCONFIG_DIR) && $(MAKE) build
+# ============================================================================
+# Docker Tool Configuration
+# ============================================================================
+# cbdc-tool 镜像包含: fxconfig, cryptogen, fabric-ca-client, fabric-ca-server,
+# tokengen, libkms_pkcs11.so
+# 使用 .env 文件中定义的 DOCKER_TOOLS_IMAGE 变量
 
-# Ensure fxconfig is built from local source before using it
-$(FXCONFIG_BIN): build-fxconfig
+# Docker 运行基础命令
+# --rm: 容器退出后自动删除
+# --user: 使用当前用户权限，避免生成 root 权限的文件
+# -v: 挂载当前项目目录到容器内的 /workspace
+# -w: 设置工作目录为 /workspace
+# -e HOME: 设置 HOME 目录为 /tmp，避免工具在宿主机创建配置文件
+# 传递 Docker 配置环境变量供 config-builder 使用
+DOCKER_RUN_BASE = $(CONTAINER_CLI) run --rm \
+	--user $(shell id -u):$(shell id -g) \
+	-v $(PROJECT_DIR):/workspace \
+	-w /workspace \
+	-e HOME=/tmp \
+	-e DOCKER_ORDERER_IMAGE \
+	-e DOCKER_COMMITTER_IMAGE \
+	-e DOCKER_TOOLS_IMAGE
 
-# Build cryptogen binary (external repo)
-.PHONY: download-cryptogen
-download-cryptogen:
-	@if command -v $(CONTAINER_CLI) >/dev/null 2>&1; then \
-		if $(CONTAINER_CLI) image inspect $(TOOLS_IMAGE) >/dev/null 2>&1; then \
-			echo "Docker tools image available ($(TOOLS_IMAGE)); skipping cryptogen install"; \
-		else \
-			echo "Docker found; tools image not local. It will be pulled when needed (skipping cryptogen install)"; \
-		fi; \
-	elif command -v cryptogen >/dev/null 2>&1; then \
-		echo "Using existing local cryptogen binary"; \
-	else \
-		echo "Docker not available; installing cryptogen (Go fallback)..."; \
-		go install github.com/ethsign/cryptogen@latest; \
-	fi
+# 带网络访问的 Docker 运行命令（用于需要访问 orderer 等服务的操作）
+# --network host: 使用宿主机网络，可以访问 localhost 上的服务
+DOCKER_RUN_NET = $(DOCKER_RUN_BASE) \
+	--network host
 
-$(CRYPTOGEN_BIN): download-cryptogen
+# 带 HSM/PKCS11 支持的 Docker 运行命令
+# 挂载 HSM 库目录，并设置相关环境变量
+DOCKER_RUN_HSM = $(DOCKER_RUN_NET) \
+	-e SIGN_KMS_ENDPOINT \
+	-e KMS_TOKEN_LABEL \
+	-e KMS_USER_PIN \
+	-e CA_URL
 
-# Build all the artifacts, the binaries and transfer them to the remote hosts (e.g. make setup).
+
+
+
+# ============================================================================
+# Config Builder Targets
+# ============================================================================
+
+
+# Build all the artifacts using cbdc-tool Docker image
 .PHONY: setup-fabric
-setup-fabric: $(TOOLS_DEPS)
-	@echo "Using fabric-x-network/tools/config-builder to setup network..."
-	@echo "$(CONFIG)..."
-	@mkdir -p $(OUTPUT_DIR)
-	@$(CONFIG_BUILDER_BIN) setup \
-	  -c $(CONFIG) \
-	  -o $(OUTPUT_DIR) -v
+setup-fabric:
+	@echo "==> Generating Fabric network configuration using cbdc-tool..."
+	$(DOCKER_RUN_BASE) $(DOCKER_TOOLS_IMAGE) \
+		config-builder setup -c configs/test-full.yaml -o ./out --use-local-tools
+	@echo "==> Network configuration generated in ./out"
 
-# Generate docker-compose.yaml file
+# Build all the artifacts with KMS configuration using cbdc-tool Docker image
+.PHONY: setup-fabric-kms
+setup-fabric-kms:
+	@echo "==> Generating Fabric network configuration with KMS using cbdc-tool..."
+	$(DOCKER_RUN_HSM) $(DOCKER_TOOLS_IMAGE) \
+		config-builder setup -c configs/test-full-kms.yaml -o ./out --use-local-tools --log-level=info
+	@echo "==> Network configuration with KMS generated in ./out"
+
+# Generate docker-compose.yaml file using cbdc-tool Docker image
 .PHONY: gen-compose
-gen-compose: build-fxconfig build-config-builder
-	@echo "Generating docker-compose.yaml..."
-	@$(CONFIG_BUILDER_BIN) gen-compose \
-	  -c $(CONFIG) \
-	  -o $(OUTPUT_DIR) -v
+gen-compose:
+	@echo "==> Generating docker-compose.yaml using cbdc-tool..."
+	$(DOCKER_RUN_BASE) $(DOCKER_TOOLS_IMAGE) \
+		config-builder gen-compose -c configs/test-full.yaml -o ./out --use-local-tools 
+	@echo "==> docker-compose.yaml generated in ./out"
+
+# Generate docker-compose.yaml file with KMS configuration using cbdc-tool Docker image
+.PHONY: gen-compose-kms
+gen-compose-kms:
+	@echo "==> Generating docker-compose.yaml with KMS using cbdc-tool..."
+	$(DOCKER_RUN_HSM) $(DOCKER_TOOLS_IMAGE) \
+		config-builder gen-compose -c configs/test-full-kms.yaml -o ./out --use-local-tools
+	@echo "==> docker-compose.yaml with KMS generated in ./out"
 
 # Clean all the artifacts (configs and bins) built on the controller node (e.g. make clean).
 .PHONY: clean-fabric
@@ -85,25 +105,49 @@ start-fabric:
 	@cd $(OUTPUT_DIR) && $(CONTAINER_CLI) compose up -d
 
 # Create a namespace in fabric-x for the tokens.
-create-ns: build-fxconfig
-	@echo "Creating namespace..."
-	$(FXCONFIG_BIN) namespace create fabric_x \
+# 使用 Docker 容器运行 fxconfig 工具
+# 注意：路径已转换为容器内路径（/workspace 对应宿主机的 PROJECT_DIR）
+create-ns:
+	@echo "Creating namespace using Docker..."
+	$(DOCKER_RUN_HSM) $(DOCKER_TOOLS_IMAGE) fxconfig namespace create cbdc \
 		--channel=arma \
 		--orderer=localhost:7050 \
 		--mspID=Org1MSP \
-		--mspConfigPath=$(OUTPUT_DIR)/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/channel_admin@org1.example.com/msp \
-		--pk=$(OUTPUT_DIR)/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/endorser@org1.example.com/msp/signcerts/endorser@org1.example.com-cert.pem \
+		--mspConfigPath=./out/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/channel_admin@org1.example.com/msp \
+		--pk=./out/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/endorser@org1.example.com/msp/signcerts/endorser@org1.example.com-cert.pem \
 		--connTimeout=60s
-	@until $(FXCONFIG_BIN) namespace list --endpoint=localhost:5500 | grep -q fabric_x; do \
+	@until $(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500 | grep -q cbdc; do \
 		sleep 2; \
 		echo "waiting for namespace to be created..."; \
 	done
-	$(FXCONFIG_BIN) namespace list --endpoint=localhost:5500
+	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500
+
+# Create a namespace in fabric-x for the tokens.
+# 使用 Docker 容器运行 fxconfig 工具
+# 注意：路径已转换为容器内路径（/workspace 对应宿主机的 PROJECT_DIR）
+create-ns-dev:
+	@echo "Creating namespace using Docker..."
+	$(DOCKER_RUN_HSM) $(DOCKER_TOOLS_IMAGE) fxconfig namespace create cbdc \
+		--channel=arma \
+		--orderer=cbdc-dev.sign.global:7050 \
+		--mspID=Org1MSP \
+		--mspConfigPath=./out/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/channel_admin@org1.example.com/msp \
+		--pk=./out/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/endorser@org1.example.com/msp/signcerts/endorser@org1.example.com-cert.pem \
+		--pkcs11-library=/app/libkms_pkcs11.so \
+		--pkcs11-label="$(KMS_TOKEN_LABEL)" \
+		--pkcs11-pin=$(KMS_USER_PIN) \
+		--connTimeout=60s
+	@until $(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=cbdc-dev.sign.global:5500 | grep -q cbdc; do \
+		sleep 2; \
+		echo "waiting for namespace to be created..."; \
+	done
+	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=cbdc-dev.sign.global:5500
 
 # List namespaces
+# 使用 Docker 容器运行 fxconfig 工具
 .PHONY: list-ns
-list-ns: build-fxconfig
-	$(FXCONFIG_BIN) namespace list --endpoint=localhost:5500
+list-ns:
+	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500
 
 # Stop the targeted hosts (e.g. make fabric-x stop).
 .PHONY: stop-fabric
@@ -115,8 +159,12 @@ stop-fabric:
 .PHONY: teardown-fabric
 teardown-fabric:
 	@echo "Teardown network using docker compose..."
-	@cd $(OUTPUT_DIR) && $(CONTAINER_CLI) compose down -v
-	@$(CONTAINER_CLI) network inspect fabric_x_net >/dev/null 2>&1 && $(CONTAINER_CLI) network rm fabric_x_net || true
+	@if [ -d "$(OUTPUT_DIR)" ]; then \
+		cd $(OUTPUT_DIR) && $(CONTAINER_CLI) compose down -v; \
+	else \
+		echo "Output directory does not exist, skipping teardown"; \
+	fi
+	@$(CONTAINER_CLI) network inspect cbdc_net >/dev/null 2>&1 && $(CONTAINER_CLI) network rm cbdc_net || true
 
 # Restart the targeted hosts (e.g. make fabric-x restart).
 .PHONY: restart-fabric
@@ -125,6 +173,10 @@ restart-fabric: teardown-fabric start-fabric
 # Build all the artifacts and binaries, and copy them to the application folders
 .PHONY: setup
 setup: clean setup-fabric gen-compose
+
+# Build all the artifacts and binaries with KMS configuration
+.PHONY: setup-kms
+setup-kms: clean setup-fabric-kms gen-compose-kms
 
 # Start a Fabric and token network.
 .PHONY: start
@@ -142,19 +194,66 @@ stop: stop-fabric
 .PHONY: clean
 clean: clean-fabric
 
+# Build all KMS-enabled images
+.PHONY: build-kms-images
+build-kms-images: build-orderer-kms
+	@echo "Building all KMS-enabled images..."
+
+# Build KMS-enabled orderer Docker image
+# Orderer 需要 PKCS11/KMS 支持用于签名操作
+# 依赖 DOCKER_TOOLS_IMAGE 提供 KMS 运行时库
+.PHONY: build-orderer-kms
+build-orderer-kms:
+	@echo "Building KMS-enabled orderer image..."
+	@echo "Checking DOCKER_TOOLS_IMAGE dependency: $(DOCKER_TOOLS_IMAGE)"
+	@$(CONTAINER_CLI) image inspect $(DOCKER_TOOLS_IMAGE) >/dev/null 2>&1 || \
+		(echo "Error: $(DOCKER_TOOLS_IMAGE) not found. Please build or pull it first." && exit 1)
+	@cd $(DOCKER_DIR) && $(CONTAINER_CLI) build --platform=$(PLATFORM) \
+		--build-arg DOCKER_TOOLS_IMAGE=$(DOCKER_TOOLS_IMAGE) \
+		-t $(IMAGE_PREFIX)/cbdc-orderer-kms:$(TAG) \
+		-f Dockerfile.orderer .
+	@echo "Orderer KMS image built: $(IMAGE_PREFIX)/cbdc-orderer-kms:$(TAG)"
+
+
 # Print the list of supported commands.
 .PHONY: help
 help:
-	@awk ' \
-		/^#/ { \
-			sub(/^#[ \t]*/, "", $$0); \
-			help_msg = $$0; \
-		} \
-		/^[a-zA-Z0-9][^ :]*:/ { \
-			if (help_msg) { \
-				split($$1, target, ":"); \
-				printf "  %-40s %s\n", target[1], help_msg; \
-				help_msg = ""; \
-			} \
-		} \
-	' $(MAKEFILE_LIST)
+	@echo "CBDC Network Makefile - Available Targets"
+	@echo "=========================================="
+	@echo ""
+	@echo "Network Configuration:"
+	@echo "  setup-fabric              - Generate Fabric network config using cbdc-tool"
+	@echo "  setup-fabric-kms          - Generate Fabric network config with KMS using cbdc-tool"
+	@echo "  gen-compose               - Generate docker-compose.yaml using cbdc-tool"
+	@echo "  gen-compose-kms           - Generate docker-compose.yaml with KMS using cbdc-tool"
+	@echo ""
+	@echo "Network Operations:"
+	@echo "  setup                     - Clean and setup network (software mode)"
+	@echo "  setup-kms                 - Clean and setup network (KMS mode)"
+	@echo "  start-fabric              - Start Fabric network using docker compose"
+	@echo "  stop-fabric               - Stop Fabric network"
+	@echo "  teardown-fabric           - Teardown Fabric network and remove volumes"
+	@echo "  restart-fabric            - Restart Fabric network"
+	@echo "  create-ns                 - Create namespace in Fabric-X"
+	@echo "  list-ns                   - List namespaces in Fabric-X"
+	@echo ""
+	@echo "Docker Image Building:"
+	@echo "  build-orderer-kms         - Build KMS-enabled orderer Docker image"
+	@echo "  build-kms-images          - Build all KMS-enabled images"
+	@echo ""
+	@echo "Cleanup:"
+	@echo "  clean-fabric              - Remove all generated artifacts"
+	@echo "  clean                     - Alias for clean-fabric"
+	@echo ""
+	@echo "Environment Variables:"
+	@echo "  DOCKER_TOOLS_IMAGE        - cbdc-tool Docker image (default: from .env)"
+	@echo "  SIGN_KMS_ENDPOINT         - KMS endpoint (default: host.docker.internal:9200)"
+	@echo "  KMS_TOKEN_LABEL           - KMS token label (default: tk)"
+	@echo "  CONTAINER_CLI             - Container CLI to use (default: docker)"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make setup                                    # Setup network (software mode)"
+	@echo "  make setup-kms                                # Setup network (KMS mode)"
+	@echo "  make setup-fabric                             # Generate network config only"
+	@echo "  SIGN_KMS_ENDPOINT=192.168.1.100:9200 make setup-fabric-kms  # Custom KMS endpoint"
+	@echo ""
