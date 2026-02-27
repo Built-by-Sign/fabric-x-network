@@ -5,6 +5,7 @@
 CONTAINER_CLI ?= docker
 PROJECT_DIR := $(CURDIR)
 OUTPUT_DIR := ./out
+CONFIG ?= configs/test-full.yaml
 DOCKER_TOOLS_IMAGE ?= ghcr.io/built-by-sign/fabric-x-tool:v0.0.4
 
 export PROJECT_DIR
@@ -29,10 +30,10 @@ setup:
 	@rm -rf $(OUTPUT_DIR)
 	@echo "==> Generating network configuration..."
 	$(DOCKER_RUN_BASE) $(DOCKER_TOOLS_IMAGE) \
-		config-builder setup -c configs/test-full.yaml -o ./out --use-local-tools
+		config-builder setup -c $(CONFIG) -o ./out --use-local-tools
 	@echo "==> Generating docker-compose.yaml..."
 	$(DOCKER_RUN_BASE) $(DOCKER_TOOLS_IMAGE) \
-		config-builder gen-compose -c configs/test-full.yaml -o ./out --use-local-tools
+		config-builder gen-compose -c $(CONFIG) -o ./out --use-local-tools
 	@echo "==> Configuration ready in ./out"
 
 # Start the network
@@ -132,6 +133,7 @@ help:
 	@echo "  list-ns       - List namespaces"
 	@echo ""
 	@echo "Environment Variables:"
-	@echo "  DOCKER_TOOLS_IMAGE  - cbdc-tool Docker image (required)"
+	@echo "  CONFIG              - Network config file (default: configs/test-full.yaml)"
+	@echo "  DOCKER_TOOLS_IMAGE  - cbdc-tool Docker image (default: ghcr.io/built-by-sign/fabric-x-tool:v0.0.4)"
 	@echo "  CONTAINER_CLI       - Container CLI (default: docker)"
 	@echo ""
