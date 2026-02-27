@@ -107,9 +107,9 @@ create-ns:
 list-ns:
 	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500
 
-# One-click: setup, start network and create namespace (for first time)
+# One-click: teardown, setup, start network and create namespace
 .PHONY: quickstart
-quickstart: setup start create-ns
+quickstart: teardown setup start create-ns
 	@echo "=========================================="
 	@echo "Network is ready!"
 	@echo "=========================================="
@@ -121,13 +121,6 @@ restart: stop start
 	@echo "Network restarted!"
 	@echo "=========================================="
 
-# Rebuild: teardown, regenerate config and start fresh
-.PHONY: rebuild
-rebuild: teardown setup start create-ns
-	@echo "=========================================="
-	@echo "Network rebuilt successfully!"
-	@echo "=========================================="
-
 
 # Print the list of supported commands.
 .PHONY: help
@@ -136,9 +129,8 @@ help:
 	@echo "========================="
 	@echo ""
 	@echo "Quick Start:"
-	@echo "  quickstart    - One-click: setup, start network and create namespace (first time)"
+	@echo "  quickstart    - Teardown, setup, start network and create namespace"
 	@echo "  restart       - Stop and start the network (keep existing config)"
-	@echo "  rebuild       - Teardown, regenerate config and start fresh"
 	@echo ""
 	@echo "Main Commands:"
 	@echo "  setup         - Generate network configuration and docker-compose.yaml"
