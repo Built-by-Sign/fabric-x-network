@@ -6,7 +6,7 @@ CONTAINER_CLI ?= docker
 PROJECT_DIR := $(CURDIR)
 OUTPUT_DIR := ./out
 CONFIG ?= configs/test-full.yaml
-DOCKER_TOOLS_IMAGE ?= ghcr.io/built-by-sign/fabric-x-tool:v0.0.4
+DOCKER_TOOLS_IMAGE ?= ghcr.io/built-by-sign/fabric-x-tool:v0.0.5
 
 export PROJECT_DIR
 
@@ -74,21 +74,21 @@ create-ns:
 	@echo "Creating namespace..."
 	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace create cbdc \
 		--channel=arma \
-		--orderer=localhost:7050 \
+		--orderer=127.0.0.1:7050 \
 		--mspID=Org1MSP \
 		--mspConfigPath=./out/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/channel_admin@org1.example.com/msp \
 		--pk=./out/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/endorser@org1.example.com/msp/signcerts/endorser@org1.example.com-cert.pem \
 		--connTimeout=60s
-	@until $(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500 | grep -q cbdc; do \
+	@until $(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=127.0.0.1:5500 | grep -q cbdc; do \
 		sleep 2; \
 		echo "Waiting for namespace creation..."; \
 	done
-	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500
+	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=127.0.0.1:5500
 
 # List namespaces
 .PHONY: list-ns
 list-ns:
-	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500
+	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=127.0.0.1:5500
 
 # ============================================================================
 # Convenience Commands

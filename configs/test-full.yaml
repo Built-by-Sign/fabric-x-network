@@ -9,8 +9,8 @@ docker:
   network: cbdc_net
   network_driver: bridge
   network_external: false
-  orderer_image: 'hyperledger/fabric-x-orderer:0.0.23'
-  committer_image: 'hyperledger/fabric-x-committer:0.1.8'
+  orderer_image: 'hyperledger/fabric-x-orderer:0.0.21'
+  committer_image: 'hyperledger/fabric-x-committer:0.1.7'
   use_local_tools: false
 
 # TLS configuration

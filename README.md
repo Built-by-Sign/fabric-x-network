@@ -135,7 +135,7 @@ peer_orgs:
 
 ```bash
 # Override default Docker image
-export DOCKER_TOOLS_IMAGE=ghcr.io/built-by-sign/fabric-x-tool:v0.0.5
+export DOCKER_TOOLS_IMAGE=ghcr.io/built-by-sign/fabric-x-tool:v0.0.4
 
 # Use podman instead of docker
 export CONTAINER_CLI=podman
