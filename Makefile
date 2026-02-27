@@ -43,38 +43,51 @@ DOCKER_RUN_NET = $(DOCKER_RUN_BASE) \
 # ============================================================================
 
 
-# Build all the artifacts using cbdc-tool Docker image
-.PHONY: setup-fabric
-setup-fabric:
-	@echo "==> Generating Fabric network configuration using cbdc-tool..."
+# Generate network configuration and docker-compose.yaml
+.PHONY: setup
+setup:
+	@echo "==> Cleaning old artifacts..."
+	@rm -rf $(OUTPUT_DIR)
+	@echo "==> Generating Fabric network configuration..."
 	$(DOCKER_RUN_BASE) $(DOCKER_TOOLS_IMAGE) \
 		config-builder setup -c configs/test-full.yaml -o ./out --use-local-tools
-	@echo "==> Network configuration generated in ./out"
-
-# Generate docker-compose.yaml file using cbdc-tool Docker image
-.PHONY: gen-compose
-gen-compose:
-	@echo "==> Generating docker-compose.yaml using cbdc-tool..."
+	@echo "==> Generating docker-compose.yaml..."
 	$(DOCKER_RUN_BASE) $(DOCKER_TOOLS_IMAGE) \
 		config-builder gen-compose -c configs/test-full.yaml -o ./out --use-local-tools
-	@echo "==> docker-compose.yaml generated in ./out"
+	@echo "==> Network configuration ready in ./out"
 
-# Clean all the artifacts (configs and bins) built on the controller node (e.g. make clean).
-.PHONY: clean-fabric
-clean-fabric:
-	rm -rf $(OUTPUT_DIR)
-
-# Start fabric-x on the targeted hosts.
-.PHONY: start-fabric
-start-fabric:
+# Start the network
+.PHONY: start
+start:
 	@echo "Starting network using docker compose..."
 	@cd $(OUTPUT_DIR) && $(CONTAINER_CLI) compose up -d
 
-# Create a namespace in fabric-x for the tokens.
-# 使用 Docker 容器运行 fxconfig 工具
-# 注意：路径已转换为容器内路径（/workspace 对应宿主机的 PROJECT_DIR）
+# Stop the network
+.PHONY: stop
+stop:
+	@echo "Stopping network..."
+	@cd $(OUTPUT_DIR) && $(CONTAINER_CLI) compose stop
+
+# Teardown the network and remove volumes
+.PHONY: teardown
+teardown:
+	@echo "Tearing down network..."
+	@if [ -d "$(OUTPUT_DIR)" ]; then \
+		cd $(OUTPUT_DIR) && $(CONTAINER_CLI) compose down -v; \
+	else \
+		echo "Output directory does not exist, skipping teardown"; \
+	fi
+	@$(CONTAINER_CLI) network inspect cbdc_net >/dev/null 2>&1 && $(CONTAINER_CLI) network rm cbdc_net || true
+
+# Remove all generated artifacts
+.PHONY: clean
+clean:
+	@rm -rf $(OUTPUT_DIR)
+
+# Create namespace
+.PHONY: create-ns
 create-ns:
-	@echo "Creating namespace using Docker..."
+	@echo "Creating namespace..."
 	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace create cbdc \
 		--channel=arma \
 		--orderer=localhost:7050 \
@@ -89,39 +102,9 @@ create-ns:
 	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500
 
 # List namespaces
-# 使用 Docker 容器运行 fxconfig 工具
 .PHONY: list-ns
 list-ns:
 	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500
-
-# Stop the targeted hosts (e.g. make fabric-x stop).
-.PHONY: stop-fabric
-stop-fabric:
-	@echo "Stopping network using docker compose..."
-	@cd $(OUTPUT_DIR) && $(CONTAINER_CLI) compose stop
-
-# Teardown the targeted hosts (e.g. make fabric-x teardown).
-.PHONY: teardown-fabric
-teardown-fabric:
-	@echo "Teardown network using docker compose..."
-	@if [ -d "$(OUTPUT_DIR)" ]; then \
-		cd $(OUTPUT_DIR) && $(CONTAINER_CLI) compose down -v; \
-	else \
-		echo "Output directory does not exist, skipping teardown"; \
-	fi
-	@$(CONTAINER_CLI) network inspect cbdc_net >/dev/null 2>&1 && $(CONTAINER_CLI) network rm cbdc_net || true
-
-# Restart the targeted hosts (e.g. make fabric-x restart).
-.PHONY: restart-fabric
-restart-fabric: teardown-fabric start-fabric
-
-# Build all the artifacts and binaries, and copy them to the application folders
-.PHONY: setup
-setup: clean setup-fabric gen-compose
-
-# Start a Fabric and token network.
-.PHONY: start
-start: start-fabric
 
 # One-click: setup, start network and create namespace
 .PHONY: quickstart
@@ -130,48 +113,28 @@ quickstart: setup start create-ns
 	@echo "Network is ready!"
 	@echo "=========================================="
 
-# Teardown Fabric and the token network.
-.PHONY: teardown
-teardown: teardown-fabric
-
-# Stop Fabric and the token network.
-.PHONY: stop
-stop: stop-fabric
-
-# Remove all generated crypto.
-.PHONY: clean
-clean: clean-fabric
-
 
 # Print the list of supported commands.
 .PHONY: help
 help:
-	@echo "CBDC Network Makefile - Available Targets"
-	@echo "=========================================="
+	@echo "Fabric-X Network Makefile"
+	@echo "========================="
 	@echo ""
-	@echo "Network Configuration:"
-	@echo "  setup-fabric              - Generate Fabric network config using cbdc-tool"
-	@echo "  gen-compose               - Generate docker-compose.yaml using cbdc-tool"
+	@echo "Quick Start:"
+	@echo "  quickstart    - One-click: setup, start network and create namespace"
 	@echo ""
-	@echo "Network Operations:"
-	@echo "  quickstart                - One-click: setup, start network and create namespace"
-	@echo "  setup                     - Clean and setup network"
-	@echo "  start-fabric              - Start Fabric network using docker compose"
-	@echo "  stop-fabric               - Stop Fabric network"
-	@echo "  teardown-fabric           - Teardown Fabric network and remove volumes"
-	@echo "  restart-fabric            - Restart Fabric network"
-	@echo "  create-ns                 - Create namespace in Fabric-X"
-	@echo "  list-ns                   - List namespaces in Fabric-X"
+	@echo "Main Commands:"
+	@echo "  setup         - Generate network configuration and docker-compose.yaml"
+	@echo "  start         - Start the network"
+	@echo "  stop          - Stop the network"
+	@echo "  teardown      - Stop network and remove volumes"
+	@echo "  clean         - Remove all generated artifacts"
 	@echo ""
-	@echo "Cleanup:"
-	@echo "  clean-fabric              - Remove all generated artifacts"
-	@echo "  clean                     - Alias for clean-fabric"
+	@echo "Namespace:"
+	@echo "  create-ns     - Create namespace in Fabric-X"
+	@echo "  list-ns       - List namespaces"
 	@echo ""
 	@echo "Environment Variables:"
-	@echo "  DOCKER_TOOLS_IMAGE        - cbdc-tool Docker image"
-	@echo "  CONTAINER_CLI             - Container CLI to use (default: docker)"
-	@echo ""
-	@echo "Examples:"
-	@echo "  make setup                - Setup network"
-	@echo "  make setup-fabric         - Generate network config only"
+	@echo "  DOCKER_TOOLS_IMAGE  - cbdc-tool Docker image (required)"
+	@echo "  CONTAINER_CLI       - Container CLI (default: docker)"
 	@echo ""
