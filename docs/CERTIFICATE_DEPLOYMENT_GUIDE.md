@@ -129,34 +129,30 @@ graph TB
 ```mermaid
 graph LR
      subgraph "证书生成流程"
-         KMS["KMS/HSM<br/>私钥存储"]
          CA["Fabric CA<br/>证书签发"]
-         
-         KMS -->|1. 生成密钥对| KeyPair["公私钥对"]
+
+         CA -->|1. 生成密钥对| KeyPair["公私钥对"]
          KeyPair -->|2. 公钥| CSR["证书签名请求<br/>CSR"]
          CSR -->|3. 提交| CA
          CA -->|4. 签发| Cert["X.509 证书"]
-         
+
          Cert -->|5a. 身份证书| MSP["msp/signcerts/<br/>node-cert.pem"]
          Cert -->|5b. TLS证书| TLS["tls/server.crt"]
-         
+
          MSP -->|引用| ConfigTX["configtx.yaml<br/>ConsenterMapping"]
          TLS -->|引用| ConfigTX
-         
+
          ConfigTX -->|生成| GenesisBlock["genesis.block<br/>创世区块"]
-         
+
          GenesisBlock -->|启动| Node["Orderer/Peer<br/>节点"]
          MSP -->|挂载| Node
          TLS -->|挂载| Node
-         KMS -->|PKCS#11| Node
      end
-     
-     KMS:::red
+
      CA:::blue
      GenesisBlock:::yellow
      Node:::green
 
-     classDef red fill:#ff6b6b
      classDef blue fill:#4ecdc4
      classDef yellow fill:#ffd93d
      classDef green fill:#95e1d3
@@ -172,34 +168,29 @@ graph LR
 graph TD
     subgraph "Orderer Consenter 节点"
         Node["orderer-consenter-1"]
-        
+
         Node -->|依赖1| MSPDir["/config/msp/<br/>MSP 目录"]
         Node -->|依赖2| TLSDir["/config/tls/<br/>TLS 目录"]
         Node -->|依赖3| Genesis["/config/genesis.block<br/>创世区块"]
         Node -->|依赖4| Config["/config/node_config.yaml<br/>节点配置"]
-        Node -->|依赖5| KMS["KMS Endpoint<br/>PKCS#11"]
-        
+
         MSPDir --> SignCert["signcerts/node-cert.pem<br/>节点身份证书"]
         MSPDir --> CACert["cacerts/ca.ordererorg1.example.com-cert.pem<br/>组织 CA 证书"]
         MSPDir --> PrivKey["keystore/priv_sk<br/>私钥文件"]
         MSPDir --> MSPConfig["config.yaml<br/>NodeOUs 配置"]
         MSPDir --> IssuerPK["IssuerPublicKey<br/>Idemix 公钥"]
         MSPDir --> RevocPK["IssuerRevocationPublicKey<br/>Idemix 吊销公钥"]
-        
+
         TLSDir --> TLSCert["server.crt<br/>TLS 证书链"]
         TLSDir --> TLSKey["server.key<br/>TLS 私钥"]
         TLSDir --> TLSCACert["ca.crt<br/>TLS CA 证书"]
-        
+
         Genesis --> OrgMSPs["所有组织的<br/>CA 证书"]
         Genesis --> ConsenterMap["ConsenterMapping<br/>证书路径引用"]
-        
-        Config --> BCCSP["BCCSP 配置<br/>PKCS11"]
+
         Config --> MSPID["LocalMSPID<br/>组织标识"]
-        
-        KMS --> TokenLabel["Token Label<br/>密钥标识"]
-        KMS --> UserPin["User PIN<br/>访问凭证"]
     end
-    
+
     Node:::yellow
     SignCert:::red
     TLSCert:::blue
@@ -333,59 +324,7 @@ graph TD
 
 ## 7. 生产环境配置建议
 
-### 7.1 开发环境配置 (test-full-kms.yaml 示例)
-
-```yaml
-# 开发环境 - 单一 CA，简化部署
-project_dir: ''
-output_dir: ./out
-channel_id: arma
-
-# TLS configuration for orderer nodes
-tls:
-  enabled: false # 开发环境暂禁用 TLS 便于调试
-  client_auth_required: false
-
-# KMS configuration (开发环境示例)
-kms:
-  enabled: true
-  endpoint: "host.docker.internal:50051"  # 开发环境 KMS 端点
-  token_label: "FabricToken"              # KMS Token 标签
-  ca_url: "http://host.docker.internal:7054" # 开发 CA URL
-
-orderer_orgs:
-  - name: OrdererOrg1
-    domain: ordererorg1.example.com
-    enable_organizational_units: false
-    kms_token_label: "OrdererOrg1Token"   # 组织特定 Token
-    kms_user_pin: "1234567"              # 组织特定 PIN
-    orderers:
-      - name: orderer-router-1
-        type: router
-        port: 7050
-        host: host.docker.internal
-      - name: orderer-consenter-1
-        type: consenter
-        port: 7052
-        host: host.docker.internal
-        user_pin: "individual-pin"         # 节点特定 PIN（可选）
-
-peer_orgs:
-  - name: Org1MSP
-    domain: org1.example.com
-    enable_organizational_units: false
-    kms_token_label: "Org1Token"
-    kms_user_pin: "1234567"
-    peers:
-      - name: peer0
-    users:
-      - name: Admin
-      - name: channel_admin
-        meta_namespace_admin: true
-      - name: endorser
-```
-
-### 7.2 生产环境配置 (推荐)
+### 7.1 生产环境配置 (推荐)
 
 ```yaml
 # 生产环境 - 分布式 CA，高安全级别
