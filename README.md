@@ -135,7 +135,7 @@ peer_orgs:
 
 ```bash
 # Override default Docker image
-export DOCKER_TOOLS_IMAGE=ghcr.io/built-by-sign/fabric-x-tool:v0.0.4
+export DOCKER_TOOLS_IMAGE=ghcr.io/built-by-sign/fabric-x-tool:v0.0.5
 
 # Use podman instead of docker
 export CONTAINER_CLI=podman
@@ -164,7 +164,7 @@ make list-ns
 
 # Custom namespace creation
 docker run --rm --network host \
-  ghcr.io/built-by-sign/fabric-x-tool:v0.0.4 \
+  ghcr.io/built-by-sign/fabric-x-tool:v0.0.5 \
   fxconfig namespace create my-namespace \
   --channel=arma \
   --orderer=localhost:7050 \

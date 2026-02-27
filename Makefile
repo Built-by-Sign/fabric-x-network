@@ -134,6 +134,6 @@ help:
 	@echo ""
 	@echo "Environment Variables:"
 	@echo "  CONFIG              - Network config file (default: configs/test-full.yaml)"
-	@echo "  DOCKER_TOOLS_IMAGE  - Tool Docker image (default: ghcr.io/built-by-sign/fabric-x-tool:v0.0.4)"
+	@echo "  DOCKER_TOOLS_IMAGE  - Tool Docker image"
 	@echo "  CONTAINER_CLI       - Container CLI (default: docker)"
 	@echo ""
