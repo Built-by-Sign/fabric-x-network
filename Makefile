@@ -1,66 +1,44 @@
-#
-# Copyright IBM Corp. All Rights Reserved.
-#
+# Fabric-X Network Makefile
 # SPDX-License-Identifier: Apache-2.0
-#
-# exported vars
+
+# Configuration
 CONTAINER_CLI ?= docker
 PROJECT_DIR := $(CURDIR)
-export PROJECT_DIR
-
-# Makefile vars
 OUTPUT_DIR := ./out
-
-# ============================================================================
-# Docker Tool Configuration
-# ============================================================================
-# cbdc-tool 镜像包含: fxconfig, cryptogen, fabric-ca-client, fabric-ca-server, tokengen
-# 可通过环境变量 DOCKER_TOOLS_IMAGE 覆盖默认镜像
 DOCKER_TOOLS_IMAGE ?= ghcr.io/built-by-sign/fabric-x-tool:v0.0.4
 
-# Docker 运行基础命令
-# --rm: 容器退出后自动删除
-# --user: 使用当前用户权限，避免生成 root 权限的文件
-# -v: 挂载当前项目目录到容器内的 /workspace
-# -w: 设置工作目录为 /workspace
-# -e HOME: 设置 HOME 目录为 /tmp，避免工具在宿主机创建配置文件
-# 传递 Docker 配置环境变量供 config-builder 使用
+export PROJECT_DIR
+
+# Docker base command
 DOCKER_RUN_BASE = $(CONTAINER_CLI) run --rm \
 	--user $(shell id -u):$(shell id -g) \
 	-v $(PROJECT_DIR):/workspace \
 	-w /workspace \
 	-e HOME=/tmp
 
-# 带网络访问的 Docker 运行命令（用于需要访问 orderer 等服务的操作）
-# --network host: 使用宿主机网络，可以访问 localhost 上的服务
-DOCKER_RUN_NET = $(DOCKER_RUN_BASE) \
-	--network host
-
-
-
-
+# Docker command with host network access
+DOCKER_RUN_NET = $(DOCKER_RUN_BASE) --network host
 # ============================================================================
-# Config Builder Targets
+# Network Configuration
 # ============================================================================
-
 
 # Generate network configuration and docker-compose.yaml
 .PHONY: setup
 setup:
 	@echo "==> Cleaning old artifacts..."
 	@rm -rf $(OUTPUT_DIR)
-	@echo "==> Generating Fabric network configuration..."
+	@echo "==> Generating network configuration..."
 	$(DOCKER_RUN_BASE) $(DOCKER_TOOLS_IMAGE) \
 		config-builder setup -c configs/test-full.yaml -o ./out --use-local-tools
 	@echo "==> Generating docker-compose.yaml..."
 	$(DOCKER_RUN_BASE) $(DOCKER_TOOLS_IMAGE) \
 		config-builder gen-compose -c configs/test-full.yaml -o ./out --use-local-tools
-	@echo "==> Network configuration ready in ./out"
+	@echo "==> Configuration ready in ./out"
 
 # Start the network
 .PHONY: start
 start:
-	@echo "Starting network using docker compose..."
+	@echo "Starting network..."
 	@cd $(OUTPUT_DIR) && $(CONTAINER_CLI) compose up -d
 
 # Stop the network
@@ -69,7 +47,7 @@ stop:
 	@echo "Stopping network..."
 	@cd $(OUTPUT_DIR) && $(CONTAINER_CLI) compose stop
 
-# Teardown the network and remove volumes
+# Teardown network and remove volumes
 .PHONY: teardown
 teardown:
 	@echo "Tearing down network..."
@@ -85,6 +63,10 @@ teardown:
 clean:
 	@rm -rf $(OUTPUT_DIR)
 
+# ============================================================================
+# Namespace Management
+# ============================================================================
+
 # Create namespace
 .PHONY: create-ns
 create-ns:
@@ -98,7 +80,7 @@ create-ns:
 		--connTimeout=60s
 	@until $(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500 | grep -q cbdc; do \
 		sleep 2; \
-		echo "waiting for namespace to be created..."; \
+		echo "Waiting for namespace creation..."; \
 	done
 	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500
 
@@ -107,22 +89,28 @@ create-ns:
 list-ns:
 	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=localhost:5500
 
-# One-click: teardown, setup, start network and create namespace
+# ============================================================================
+# Convenience Commands
+# ============================================================================
+
+# One-click: teardown, setup, start and create namespace
 .PHONY: quickstart
 quickstart: teardown setup start create-ns
 	@echo "=========================================="
 	@echo "Network is ready!"
 	@echo "=========================================="
 
-# Restart: stop and start the network (keep existing config)
+# Restart: stop and start (keep existing config)
 .PHONY: restart
 restart: stop start
 	@echo "=========================================="
 	@echo "Network restarted!"
 	@echo "=========================================="
 
+# ============================================================================
+# Help
+# ============================================================================
 
-# Print the list of supported commands.
 .PHONY: help
 help:
 	@echo "Fabric-X Network Makefile"
