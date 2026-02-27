@@ -135,7 +135,7 @@ peer_orgs:
 
 ```bash
 # Override default Docker image
-export DOCKER_TOOLS_IMAGE=ghcr.io/built-by-sign/fabric-x-tool:v0.0.4
+export DOCKER_TOOLS_IMAGE=ghcr.io/built-by-sign/fabric-x-tool:v0.0.5
 
 # Use podman instead of docker
 export CONTAINER_CLI=podman
@@ -164,7 +164,7 @@ make list-ns
 
 # Custom namespace creation
 docker run --rm --network host \
-  ghcr.io/built-by-sign/fabric-x-tool:v0.0.4 \
+  ghcr.io/built-by-sign/fabric-x-tool:v0.0.5 \
   fxconfig namespace create my-namespace \
   --channel=arma \
   --orderer=localhost:7050 \
@@ -173,25 +173,6 @@ docker run --rm --network host \
 
 ## Troubleshooting
 
-### Committer State Mismatch
-
-**Symptom**: Sidecar logs show state mismatch errors
-
-**Solution**:
-```bash
-# Stop committer services
-docker compose -f ./out/docker-compose.yaml stop committer-*
-
-# Clear sidecar ledger
-rm -rf ./out/local-deployment/committer-sidecar/config/ledger/*
-
-# Truncate database
-docker exec committer-db psql -U sc_user -d sc_db \
-  -c "TRUNCATE TABLE tx_status, ns_cbdc, ns__config, ns__meta, metadata CASCADE;"
-
-# Restart services
-docker compose -f ./out/docker-compose.yaml start committer-*
-```
 
 ### Network Reset
 

@@ -72,14 +72,14 @@ clean:
 .PHONY: create-ns
 create-ns:
 	@echo "Creating namespace..."
-	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace create cbdc \
+	$(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace create ns1 \
 		--channel=arma \
 		--orderer=127.0.0.1:7050 \
 		--mspID=Org1MSP \
 		--mspConfigPath=./out/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/channel_admin@org1.example.com/msp \
 		--pk=./out/build/config/cryptogen-artifacts/crypto/peerOrganizations/org1.example.com/users/endorser@org1.example.com/msp/signcerts/endorser@org1.example.com-cert.pem \
 		--connTimeout=60s
-	@until $(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=127.0.0.1:5500 | grep -q cbdc; do \
+	@until $(DOCKER_RUN_NET) $(DOCKER_TOOLS_IMAGE) fxconfig namespace list --endpoint=127.0.0.1:5500 | grep -q ns1; do \
 		sleep 2; \
 		echo "Waiting for namespace creation..."; \
 	done
@@ -134,6 +134,6 @@ help:
 	@echo ""
 	@echo "Environment Variables:"
 	@echo "  CONFIG              - Network config file (default: configs/test-full.yaml)"
-	@echo "  DOCKER_TOOLS_IMAGE  - cbdc-tool Docker image (default: ghcr.io/built-by-sign/fabric-x-tool:v0.0.4)"
+	@echo "  DOCKER_TOOLS_IMAGE  - Tool Docker image"
 	@echo "  CONTAINER_CLI       - Container CLI (default: docker)"
 	@echo ""
