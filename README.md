@@ -1,137 +1,253 @@
 # Fabric-X Network
 
-A Fabric-X network deployment configuration for CBDC applications.
+> Enterprise-grade Hyperledger Fabric network deployment toolkit with configuration-driven automation
 
-## Prerequisites
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Fabric](https://img.shields.io/badge/Hyperledger%20Fabric-2.5+-green.svg)](https://www.hyperledger.org/use/fabric)
 
-- **Go 1.24.3+** — builds local tools (config-builder, fxconfig) when you run Make targets
-- **Docker & Docker Compose** — runs the network and the tooling image `docker.io/hyperledger/fabric-x-tools:0.0.4`
-- **Optional**: If Docker is unavailable, `cryptogen` can fall back to a local Go build
+## Overview
+
+Fabric-X Network is a production-ready deployment framework for Hyperledger Fabric that eliminates the complexity of blockchain network setup. Define your network topology in YAML, and let the toolkit handle certificate generation, configuration management, and Docker orchestration.
+
+### Key Features
+
+- **Configuration-Driven** - Define entire network topology in declarative YAML
+- **One-Command Deployment** - From zero to running network in seconds
+- **Production-Ready** - Enterprise-grade certificate management with cryptogen
+- **Docker Native** - Seamless integration with Docker Compose
+- **Namespace Management** - Built-in support for Fabric-X namespace operations
 
 ## Quick Start
 
+### Prerequisites
+
+- Docker 20.10+
+- Docker Compose 2.0+
+- 4GB RAM minimum
+
+### Launch Your Network
+
 ```bash
-make setup                        # Build local tools, generate configs & certificates
-make start                        # Start the network
-make create-ns                    # Create the fabric-x namespace
-# Override the config file if desired
-make setup CONFIG=./configs/your-config.yaml
+# One-click deployment
+make quickstart
 ```
 
-## Available Commands
+That's it! Your Fabric network is now running with:
+- Multi-organization setup
+- Orderer nodes (Router, Batcher, Consenter, Assembler)
+- Peer nodes with committer sidecars
+- Namespace created and ready
 
-| Command          | Description                                                                                 |
-| ---------------- | ------------------------------------------------------------------------------------------- |
-| `make setup`     | Install config-builder, generate network configuration and certificates (output to `./out`) |
-| `make start`     | Start the Fabric-X network using docker compose                                             |
-| `make stop`      | Stop the network (preserves data)                                                           |
-| `make teardown`  | Stop network and remove all containers and volumes                                          |
-| `make clean`     | Remove all generated artifacts in `./out` directory                                         |
-| `make create-ns` | Create the `fabric_x` namespace in the network                                              |
-| `make list-ns`   | List all namespaces                                                                         |
-| `make restart`   | Teardown and restart the network                                                            |
-| `make help`      | Show all available commands                                                                 |
+### Available Commands
+
+```bash
+make quickstart    # Full deployment: teardown → setup → start → create namespace
+make restart       # Quick restart: stop → start (keeps config)
+make setup         # Generate network configuration
+make start         # Start the network
+make stop          # Stop the network
+make teardown      # Stop and remove all volumes
+make clean         # Remove generated artifacts
+make create-ns     # Create namespace
+make list-ns       # List namespaces
+make help          # Show all commands
+```
+
+## Architecture
+
+### Network Topology
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Fabric-X Network                      │
+├─────────────────────────────────────────────────────────┤
+│                                                           │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Orderer    │  │   Orderer    │  │   Orderer    │  │
+│  │   Org 1-4    │  │   Org 1-4    │  │   Org 1-4    │  │
+│  │              │  │              │  │              │  │
+│  │  • Router    │  │  • Batcher   │  │  • Consenter │  │
+│  │  • Assembler │  │              │  │              │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│                                                           │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │              Peer Organizations                   │   │
+│  │                                                    │   │
+│  │  ┌─────────────┐                                 │   │
+│  │  │   Org1MSP   │                                 │   │
+│  │  │             │                                 │   │
+│  │  │  • Peer0    │                                 │   │
+│  │  │  • Committer│                                 │   │
+│  │  └─────────────┘                                 │   │
+│  └──────────────────────────────────────────────────┘   │
+│                                                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Components
+
+- **Orderer Nodes**: Consensus and transaction ordering
+  - Router: Message routing and distribution
+  - Batcher: Transaction batching
+  - Consenter: Consensus participation
+  - Assembler: Block assembly
+- **Peer Nodes**: Ledger maintenance and chaincode execution
+- **Committer**: Transaction validation and ledger updates
+- **Namespace**: Fabric-X namespace for token operations
 
 ## Configuration
 
-The network configuration is defined in [configs/test-simple.yaml](configs/test-simple.yaml). This file specifies:
+### Network Definition
 
-- Organization structure
-- Peer and orderer configuration
-- Channel settings
-- HSM settings (if enabled)
+Edit `configs/test-full.yaml` to customize your network:
 
-To modify the network topology, edit this file before running `make setup`.
+```yaml
+# Network configuration
+channel_id: arma
+output_dir: ./out
 
-### Custom Config (Make Variable)
+# Docker images
+docker:
+  orderer_image: hyperledger/fabric-x-orderer:0.0.23
+  committer_image: hyperledger/fabric-x-committer:0.1.8
 
-You can override the default config at runtime using the `CONFIG` variable. If not provided, it defaults to `configs/test-simple.yaml`.
+# Orderer organizations
+orderer_orgs:
+  - name: OrdererOrg1
+    domain: ordererorg1.example.com
+    orderers:
+      - name: orderer-router-1
+        type: router
+        port: 7050
 
-Examples:
-
-```bash
-# Use a different config file for full setup
-make setup CONFIG=./configs/your-config.yaml
-
-# Generate docker-compose for a specific config
-make gen-compose CONFIG=./configs/your-config.yaml
+# Peer organizations
+peer_orgs:
+  - name: Org1MSP
+    domain: org1.example.com
+    peers:
+      - name: peer0
+    users:
+      - name: Admin
+      - name: User1
 ```
 
-## Dependencies
+### Environment Variables
 
-### config-builder (local)
+```bash
+# Override default Docker image
+export DOCKER_TOOLS_IMAGE=ghcr.io/built-by-sign/fabric-x-tool:v0.0.4
 
-Built from the local source at `tools/config-builder` by the Make targets (no external download). Produces:
+# Use podman instead of docker
+export CONTAINER_CLI=podman
+```
 
-- Crypto materials
-- Docker Compose configs
-- Genesis block and channel configs
+## Advanced Usage
 
-### fxconfig (local)
+### Custom Network Topology
 
-Built from the local source at `tools/fxconfig` by the Make targets. Used for namespace management commands like `make create-ns`.
+Create your own configuration file:
 
-### cryptogen (container-first)
+```bash
+cp configs/test-full.yaml configs/my-network.yaml
+# Edit configs/my-network.yaml
+make setup CONFIG=configs/my-network.yaml
+```
 
-By default, `make setup` uses the Docker image `docker.io/hyperledger/fabric-x-tools:0.0.4` to run `cryptogen` and related tooling. If Docker is unavailable, it falls back to building `cryptogen` locally via Go.
+### Namespace Operations
+
+```bash
+# Create namespace
+make create-ns
+
+# List all namespaces
+make list-ns
+
+# Custom namespace creation
+docker run --rm --network host \
+  ghcr.io/built-by-sign/fabric-x-tool:v0.0.4 \
+  fxconfig namespace create my-namespace \
+  --channel=arma \
+  --orderer=localhost:7050 \
+  --mspID=Org1MSP
+```
 
 ## Troubleshooting
 
-### Committer Sidecar State Mismatch
+### Committer State Mismatch
 
-**Symptom**: Sidecar logs show error:
+**Symptom**: Sidecar logs show state mismatch errors
 
-```
-failed to recover the ledger store: committer should have the status of txID [...] but it does not
-```
-
-**Cause**: The sidecar's file-based ledger and committer-db are out of sync. This happens when:
-
-- Running `make setup` after a previous run (deletes sidecar ledger but not committer-db volume)
-- Manually resetting only one component
-
-**Fix**:
-
+**Solution**:
 ```bash
 # Stop committer services
-docker compose -f ./out/docker-compose.yaml stop committer-sidecar committer-coordinator committer-verifier committer-validator committer-query-service
+docker compose -f ./out/docker-compose.yaml stop committer-*
 
 # Clear sidecar ledger
 rm -rf ./out/local-deployment/committer-sidecar/config/ledger/*
 
-# Truncate committer-db
-docker exec committer-db psql -U sc_user -d sc_db -c "TRUNCATE TABLE tx_status, ns_fabric_x, ns__config, ns__meta, metadata CASCADE;"
+# Truncate database
+docker exec committer-db psql -U sc_user -d sc_db \
+  -c "TRUNCATE TABLE tx_status, ns_cbdc, ns__config, ns__meta, metadata CASCADE;"
 
-# Restart
-docker compose -f ./out/docker-compose.yaml start committer-validator committer-verifier committer-query-service committer-coordinator committer-sidecar
+# Restart services
+docker compose -f ./out/docker-compose.yaml start committer-*
 ```
 
-### Clean Restart (Full Reset)
+### Network Reset
 
-To completely reset the network including all persistent data:
+For a complete clean slate (teardown + setup + start + create namespace):
 
 ```bash
-docker compose -f ./out/docker-compose.yaml down -v  # Removes containers AND volumes
-make setup
-make start
-make create-ns
+make quickstart
 ```
 
-## Other
+### Port Conflicts
 
-## Directory Structure
+If ports are already in use, modify the port mappings in `configs/test-full.yaml`:
 
+```yaml
+orderers:
+  - name: orderer-router-1
+    port: 8050  # Changed from 7050
 ```
-fabric-x-network/
-├── Makefile              # Build and deployment commands
-├── README.md
-├── configs/              # Network configuration files
-│   └── test-simple.yaml
-├── out/                  # Generated artifacts (gitignored)
-│   ├── docker-compose.yaml
-│   ├── build/
-│   │   └── config/       # Certificates and configs
-│   └── cli/
-├── scripts/              # Setup and utility scripts
-└── tools/                # Custom tooling
+
+## Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/Built-by-Sign/fabric-x-network.git
+cd fabric-x-network
+
+# Run tests
+make quickstart
 ```
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Built on [Hyperledger Fabric](https://www.hyperledger.org/use/fabric)
+- Powered by [Fabric-X](https://github.com/built-by-sign/fabric-x)
+- Certificate management via cryptogen
+
+## Support
+
+- 📖 [Documentation](docs/)
+- 🐛 [Issue Tracker](https://github.com/Built-by-Sign/fabric-x-network/issues)
+- 💬 [Discussions](https://github.com/Built-by-Sign/fabric-x-network/discussions)
+
+---
+
+**Made with ❤️ for the Hyperledger community**

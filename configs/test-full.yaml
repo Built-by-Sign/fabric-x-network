@@ -1,40 +1,27 @@
-# Test configuration - software mode (HSM disabled)
-# project_dir can be left blank or use "." to automatically detect it, or use an absolute path
-# Automatic detection will search upwards from the directory where the configuration file is located
-# to the directory containing the tools/directory (that is, the root directory of fabric-x-network)
-project_dir: ""
-output_dir: ./build
+# Network configuration
+project_dir: ''
+output_dir: ./out
 channel_id: arma
 
 # Docker settings
 docker:
-  name: fabric_x
-  network: fabric_x_net
+  name: fabric-x-test
+  network: fabric-x-test-net
   network_driver: bridge
   network_external: false
-  orderer_image: "hyperledger/fabric-x-orderer:0.0.19" # Use remote image (same as Ansible default)
-  committer_image: "hyperledger/fabric-x-committer:0.1.5" # Use available image
+  orderer_image: 'hyperledger/fabric-x-orderer:0.0.21'
+  committer_image: 'hyperledger/fabric-x-committer:0.1.7'
+  use_local_tools: false
 
-hsm:
-  enabled: false
-  library_path: "" # Leave blank for automatic detection
-  config_path: /tmp/softhsm2.conf
-  token_dir: /tmp/softhsm/tokens
-  pin: "1234"
-  sopin: "5678"
-  token_label: FabricToken
-  multi_token: true
-
-# TLS configuration for orderer nodes
+# TLS configuration
 tls:
-  enabled: false # Enable TLS for orderer nodes (temporarily disabled for debugging)
-  client_auth_required: false # Require client authentication (mTLS)
+  enabled: false
+  client_auth_required: false
 
 orderer_orgs:
   - name: OrdererOrg1
     domain: ordererorg1.example.com
     enable_organizational_units: false
-    hsm_token_label: "FabricToken-OrdererOrg1"
     orderers:
       - name: orderer-router-1
         type: router
@@ -57,7 +44,6 @@ orderer_orgs:
   - name: OrdererOrg2
     domain: ordererorg2.example.com
     enable_organizational_units: false
-    hsm_token_label: "FabricToken-OrdererOrg2"
     orderers:
       - name: orderer-router-2
         type: router
@@ -80,7 +66,6 @@ orderer_orgs:
   - name: OrdererOrg3
     domain: ordererorg3.example.com
     enable_organizational_units: false
-    hsm_token_label: "FabricToken-OrdererOrg3"
     orderers:
       - name: orderer-router-3
         type: router
@@ -103,7 +88,6 @@ orderer_orgs:
   - name: OrdererOrg4
     domain: ordererorg4.example.com
     enable_organizational_units: false
-    hsm_token_label: "FabricToken-OrdererOrg4"
     orderers:
       - name: orderer-router-4
         type: router
