@@ -73,12 +73,12 @@ make help          # Show all commands
 │  ┌──────────────────────────────────────────────────┐   │
 │  │              Peer Organizations                   │   │
 │  │                                                    │   │
-│  │  ┌─────────────┐         ┌─────────────┐        │   │
-│  │  │   Org1MSP   │         │   Org2MSP   │        │   │
-│  │  │             │         │             │        │   │
-│  │  │  • Peer0    │         │  • Peer0    │        │   │
-│  │  │  • Committer│         │  • Committer│        │   │
-│  │  └─────────────┘         └─────────────┘        │   │
+│  │  ┌─────────────┐                                 │   │
+│  │  │   Org1MSP   │                                 │   │
+│  │  │             │                                 │   │
+│  │  │  • Peer0    │                                 │   │
+│  │  │  • Committer│                                 │   │
+│  │  └─────────────┘                                 │   │
 │  └──────────────────────────────────────────────────┘   │
 │                                                           │
 └─────────────────────────────────────────────────────────┘
@@ -110,7 +110,6 @@ output_dir: ./out
 docker:
   orderer_image: hyperledger/fabric-x-orderer:0.0.19
   committer_image: hyperledger/fabric-x-committer:0.1.5
-  tools_image: ghcr.io/built-by-sign/fabric-x-tool:v0.0.4
 
 # Orderer organizations
 orderer_orgs:
@@ -244,7 +243,7 @@ We welcome contributions! Please follow these guidelines:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/fabric-x-network.git
+git clone https://github.com/Built-by-Sign/fabric-x-network.git
 cd fabric-x-network
 
 # Run tests
@@ -264,8 +263,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ## Support
 
 - 📖 [Documentation](docs/)
-- 🐛 [Issue Tracker](https://github.com/your-org/fabric-x-network/issues)
-- 💬 [Discussions](https://github.com/your-org/fabric-x-network/discussions)
+- 🐛 [Issue Tracker](https://github.com/Built-by-Sign/fabric-x-network/issues)
+- 💬 [Discussions](https://github.com/Built-by-Sign/fabric-x-network/discussions)
 
 ---
 
