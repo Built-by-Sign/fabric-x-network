@@ -171,6 +171,27 @@ docker run --rm --network host \
   --mspID=Org1MSP
 ```
 
+## Troubleshooting
+
+
+### Network Reset
+
+For a complete clean slate (teardown + setup + start + create namespace):
+
+```bash
+make quickstart
+```
+
+### Port Conflicts
+
+If ports are already in use, modify the port mappings in `configs/test-full.yaml`:
+
+```yaml
+orderers:
+  - name: orderer-router-1
+    port: 8050  # Changed from 7050
+```
+
 ## Contributing
 
 We welcome contributions! Please follow these guidelines:
