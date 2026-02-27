@@ -53,29 +53,13 @@ setup-fabric:
 		config-builder setup -c configs/test-full.yaml -o ./out --use-local-tools
 	@echo "==> Network configuration generated in ./out"
 
-# Build all the artifacts with KMS configuration using cbdc-tool Docker image
-.PHONY: setup-fabric-kms
-setup-fabric-kms:
-	@echo "==> Generating Fabric network configuration with KMS using cbdc-tool..."
-	$(DOCKER_RUN_HSM) $(DOCKER_TOOLS_IMAGE) \
-		config-builder setup -c configs/test-full-kms.yaml -o ./out --use-local-tools --log-level=info
-	@echo "==> Network configuration with KMS generated in ./out"
-
 # Generate docker-compose.yaml file using cbdc-tool Docker image
 .PHONY: gen-compose
 gen-compose:
 	@echo "==> Generating docker-compose.yaml using cbdc-tool..."
 	$(DOCKER_RUN_BASE) $(DOCKER_TOOLS_IMAGE) \
-		config-builder gen-compose -c configs/test-full.yaml -o ./out --use-local-tools 
+		config-builder gen-compose -c configs/test-full.yaml -o ./out --use-local-tools
 	@echo "==> docker-compose.yaml generated in ./out"
-
-# Generate docker-compose.yaml file with KMS configuration using cbdc-tool Docker image
-.PHONY: gen-compose-kms
-gen-compose-kms:
-	@echo "==> Generating docker-compose.yaml with KMS using cbdc-tool..."
-	$(DOCKER_RUN_HSM) $(DOCKER_TOOLS_IMAGE) \
-		config-builder gen-compose -c configs/test-full-kms.yaml -o ./out --use-local-tools
-	@echo "==> docker-compose.yaml with KMS generated in ./out"
 
 # Clean all the artifacts (configs and bins) built on the controller node (e.g. make clean).
 .PHONY: clean-fabric
@@ -158,10 +142,6 @@ restart-fabric: teardown-fabric start-fabric
 .PHONY: setup
 setup: clean setup-fabric gen-compose
 
-# Build all the artifacts and binaries with KMS configuration
-.PHONY: setup-kms
-setup-kms: clean setup-fabric-kms gen-compose-kms
-
 # Start a Fabric and token network.
 .PHONY: start
 start: start-fabric
@@ -177,26 +157,6 @@ stop: stop-fabric
 # Remove all generated crypto.
 .PHONY: clean
 clean: clean-fabric
-
-# Build all KMS-enabled images
-.PHONY: build-kms-images
-build-kms-images: build-orderer-kms
-	@echo "Building all KMS-enabled images..."
-
-# Build KMS-enabled orderer Docker image
-# Orderer 需要 PKCS11/KMS 支持用于签名操作
-# 依赖 DOCKER_TOOLS_IMAGE 提供 KMS 运行时库
-.PHONY: build-orderer-kms
-build-orderer-kms:
-	@echo "Building KMS-enabled orderer image..."
-	@echo "Checking DOCKER_TOOLS_IMAGE dependency: $(DOCKER_TOOLS_IMAGE)"
-	@$(CONTAINER_CLI) image inspect $(DOCKER_TOOLS_IMAGE) >/dev/null 2>&1 || \
-		(echo "Error: $(DOCKER_TOOLS_IMAGE) not found. Please build or pull it first." && exit 1)
-	@cd $(DOCKER_DIR) && $(CONTAINER_CLI) build --platform=$(PLATFORM) \
-		--build-arg DOCKER_TOOLS_IMAGE=$(DOCKER_TOOLS_IMAGE) \
-		-t $(IMAGE_PREFIX)/cbdc-orderer-kms:$(TAG) \
-		-f Dockerfile.orderer .
-	@echo "Orderer KMS image built: $(IMAGE_PREFIX)/cbdc-orderer-kms:$(TAG)"
 
 
 # Print the list of supported commands.
