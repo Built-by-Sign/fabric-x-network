@@ -10,7 +10,6 @@ export PROJECT_DIR
 
 # Makefile vars
 OUTPUT_DIR := ./out
-DOCKER_DIR := $(CURDIR)/docker
 
 # ============================================================================
 # Docker Tool Configuration
