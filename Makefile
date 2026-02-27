@@ -123,6 +123,13 @@ setup: clean setup-fabric gen-compose
 .PHONY: start
 start: start-fabric
 
+# One-click: setup, start network and create namespace
+.PHONY: quickstart
+quickstart: setup start create-ns
+	@echo "=========================================="
+	@echo "Network is ready!"
+	@echo "=========================================="
+
 # Teardown Fabric and the token network.
 .PHONY: teardown
 teardown: teardown-fabric
@@ -147,6 +154,7 @@ help:
 	@echo "  gen-compose               - Generate docker-compose.yaml using cbdc-tool"
 	@echo ""
 	@echo "Network Operations:"
+	@echo "  quickstart                - One-click: setup, start network and create namespace"
 	@echo "  setup                     - Clean and setup network"
 	@echo "  start-fabric              - Start Fabric network using docker compose"
 	@echo "  stop-fabric               - Stop Fabric network"
