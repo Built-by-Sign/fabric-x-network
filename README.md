@@ -195,12 +195,10 @@ docker compose -f ./out/docker-compose.yaml start committer-*
 
 ### Network Reset
 
-For a complete clean slate:
+For a complete clean slate (teardown + setup + start + create namespace):
 
 ```bash
-make teardown  # Removes all containers and volumes
-make clean     # Removes generated configurations
-make quickstart  # Fresh deployment
+make quickstart
 ```
 
 ### Port Conflicts
