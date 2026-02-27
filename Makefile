@@ -57,7 +57,7 @@ teardown:
 	else \
 		echo "Output directory does not exist, skipping teardown"; \
 	fi
-	@$(CONTAINER_CLI) network inspect cbdc_net >/dev/null 2>&1 && $(CONTAINER_CLI) network rm cbdc_net || true
+	@$(CONTAINER_CLI) network inspect fabric-x-test-net >/dev/null 2>&1 && $(CONTAINER_CLI) network rm fabric-x-test-net || true
 
 # Remove all generated artifacts
 .PHONY: clean

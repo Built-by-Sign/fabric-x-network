@@ -5,8 +5,8 @@ channel_id: arma
 
 # Docker settings
 docker:
-  name: cbdc
-  network: cbdc_net
+  name: fabric-x-test
+  network: fabric-x-test-net
   network_driver: bridge
   network_external: false
   orderer_image: 'hyperledger/fabric-x-orderer:0.0.21'
