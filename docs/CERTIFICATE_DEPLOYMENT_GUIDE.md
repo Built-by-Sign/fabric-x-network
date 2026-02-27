@@ -337,20 +337,11 @@ tls:
   enabled: true                           # 生产环境启用 TLS
   client_auth_required: true              # 启用客户端身份验证
 
-# KMS 配置（生产环境）
-kms:
-  enabled: true
-  endpoint: "kms.production.net:50051"    # 生产环境专用 KMS 集群
-  token_label: "production-fabric-token"  # 生产环境主 Token
-  ca_url: "https://ca.production.net:7054" # 生产环境 CA 集群
-
 orderer_orgs:
   # 每个 Orderer 组织部署独立的 Fabric CA
   - name: OrdererOrg1
     domain: orderer1.prod.corp          # 生产环境域名
     enable_organizational_units: true     # 启用 OU 验证
-    kms_token_label: "orderer1-prod"     # 组织专属 KMS Token
-    kms_user_pin: "${ORDERER_ORG1_PIN}" # 从环境变量获取敏感信息
     orderers:
       - name: orderer-router-1
         type: router
@@ -373,8 +364,6 @@ orderer_orgs:
   - name: OrdererOrg2
     domain: orderer2.prod.corp
     enable_organizational_units: true
-    kms_token_label: "orderer2-prod"
-    kms_user_pin: "${ORDERER_ORG2_PIN}"
     orderers:
       # 类似配置...
 
@@ -382,8 +371,6 @@ peer_orgs:
   - name: RetailBankMSP                 # 生产环境组织名称
     domain: retail.bank.prod.corp
     enable_organizational_units: true
-    kms_token_label: "retail-bank-prod"
-    kms_user_pin: "${RETAIL_BANK_PIN}"
     peers:
       - name: peer0
       - name: peer1
@@ -396,43 +383,13 @@ peer_orgs:
   - name: WholesaleBankMSP
     domain: wholesale.bank.prod.corp
     enable_organizational_units: true
-    kms_token_label: "wholesale-bank-prod"
-    kms_user_pin: "${WHOLESALE_BANK_PIN}"
     peers:
       - name: peer0
     users:
       - name: Admin
 ```
 
-### 7.3 KMS 集群配置
-
-```yaml
-# kms-cluster-config.yaml
-clusters:
-  - name: primary-kms
-    endpoints:
-      - kms-primary.prod.corp:50051
-      - kms-secondary.prod.corp:50051
-      - kms-tertiary.prod.corp:50051
-    health_check_interval: 30s
-    failover_timeout: 60s
-
-  - name: backup-kms
-    endpoints:
-      - backup-kms1.dr-site.com:50051
-      - backup-kms2.dr-site.com:50051
-    health_check_interval: 60s
-
-security:
-  encryption_at_rest: true
-  audit_logging: true
-  compliance_standards:
-    - pci_dss
-    - soc2
-    - iso_27001
-```
-
-### 7.4 CA 服务部署策略
+### 7.2 CA 服务部署策略
 
 ```yaml
 # ca-deployment-config.yaml
@@ -448,7 +405,7 @@ ca_deployments:
       sync_interval: 30s
     certificate_lifespan: 365d          # 证书有效期一年
     renewal_policy: rotate_every_180d   # 每180天轮换
-    
+
   - organization: RetailBankMSP
     ca_type: intermediate_ca
     servers:
@@ -457,7 +414,7 @@ ca_deployments:
     parent_ca: root-ca.prod.corp
     certificate_lifespan: 180d
     renewal_policy: rotate_every_90d
-    
+
   - organization: WholesaleBankMSP
     ca_type: intermediate_ca
     servers:
@@ -473,9 +430,9 @@ ca_deployments:
 ## 8. 安全最佳实践
 
 ### 8.1 密钥管理
-1. **HSM 优先**: 所有私钥必须存储在硬件安全模块(HSM)中
+1. **安全存储**: 确保私钥文件权限设置正确，仅授权用户可访问
 2. **密钥轮换**: 定期轮换 CA 证书和节点证书
-3. **访问控制**: 严格的 KMS 访问策略和审计
+3. **访问控制**: 严格的密钥访问策略和审计日志
 
 ### 8.2 证书管理
 1. **组织隔离**: 每个组织维护独立的 CA 层次
@@ -483,7 +440,7 @@ ca_deployments:
 3. **CRL 分发**: 部署证书撤销列表(CRL)分发点
 
 ### 8.3 网络安全
-1. **TLS 1.3**: 使用最新版本 TLS 加密
+1. **TLS 加密**: 使用 TLS 加密节点间通信
 2. **主机验证**: 严格验证 TLS 证书主机名
 3. **防火墙**: 限制网络访问端口和服务
 
@@ -493,13 +450,13 @@ ca_deployments:
 
 ### 9.1 开发环境部署
  1. 使用单一 CA 配置快速搭建
- 2. 采用 `test-full-kms.yaml` 模板
+ 2. 采用简化的配置模板
  3. 启用 `host.docker.internal` 以支持本地开发
 
 ### 9.2 生产环境部署
  1. 按组织独立部署 CA 集群
  2. 配置多级 CA 层次结构
- 3. 部署 KMS 集群和监控
+ 3. 部署监控和日志系统
  4. 实施安全策略和审计
 
 ### 9.3 迁移路径
