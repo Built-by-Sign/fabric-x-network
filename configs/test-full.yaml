@@ -1,6 +1,4 @@
-# 测试配置 - 软件模式
-# project_dir 可以留空或使用 "." 来自动检测，也可以使用绝对路径
-# 自动检测会从配置文件所在目录向上查找包含 tools/ 目录的目录（即 cbdc-network 根目录）
+# Network configuration
 project_dir: ''
 output_dir: ./out
 channel_id: arma
@@ -11,17 +9,14 @@ docker:
   network: cbdc_net
   network_driver: bridge
   network_external: false
-  orderer_image: 'hyperledger/fabric-x-orderer:0.0.19' # Use remote image (same as Ansible default)
-  committer_image: 'hyperledger/fabric-x-committer:0.1.5' # Use available image
-  # 是否使用本地工具而不是 Docker（默认 false）
-  # 启用后将直接调用 cryptogen、configtxgen、fabric-ca-client 命令
-  # 需要确保这些工具已安装并在 PATH 中可访问
+  orderer_image: 'hyperledger/fabric-x-orderer:0.0.19'
+  committer_image: 'hyperledger/fabric-x-committer:0.1.5'
   use_local_tools: false
 
-# TLS configuration for orderer nodes
+# TLS configuration
 tls:
-  enabled: false # Enable TLS for orderer nodes (temporarily disabled for debugging)
-  client_auth_required: false # Require client authentication (mTLS)
+  enabled: false
+  client_auth_required: false
 
 orderer_orgs:
   - name: OrdererOrg1
