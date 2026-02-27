@@ -3,11 +3,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# 读取 .env 文件
-ifneq (,$(wildcard .env))
-    include .env
-    export
-endif
 # exported vars
 CONTAINER_CLI ?= docker
 PROJECT_DIR := $(CURDIR)
@@ -35,23 +30,12 @@ DOCKER_RUN_BASE = $(CONTAINER_CLI) run --rm \
 	--user $(shell id -u):$(shell id -g) \
 	-v $(PROJECT_DIR):/workspace \
 	-w /workspace \
-	-e HOME=/tmp \
-	-e DOCKER_ORDERER_IMAGE \
-	-e DOCKER_COMMITTER_IMAGE \
-	-e DOCKER_TOOLS_IMAGE
+	-e HOME=/tmp
 
 # 带网络访问的 Docker 运行命令（用于需要访问 orderer 等服务的操作）
 # --network host: 使用宿主机网络，可以访问 localhost 上的服务
 DOCKER_RUN_NET = $(DOCKER_RUN_BASE) \
 	--network host
-
-# 带 HSM/PKCS11 支持的 Docker 运行命令
-# 挂载 HSM 库目录，并设置相关环境变量
-DOCKER_RUN_HSM = $(DOCKER_RUN_NET) \
-	-e SIGN_KMS_ENDPOINT \
-	-e KMS_TOKEN_LABEL \
-	-e KMS_USER_PIN \
-	-e CA_URL
 
 
 
