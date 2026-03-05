@@ -11,6 +11,7 @@ docker:
   network_external: false
   orderer_image: 'hyperledger/fabric-x-orderer:0.0.21'
   committer_image: 'hyperledger/fabric-x-committer:0.1.7'
+  postgres_image: 'postgres:18.3-alpine3.23'
   use_local_tools: false
 
 # TLS configuration
